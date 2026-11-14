@@ -9,6 +9,7 @@ import type {
 
 export interface LocalStoreData {
   profile: SchoolProfile;
+  dashboardPin: string;
   groups: SchoolGroup[];
   links: Omit<SchoolLink, 'status'>[];
   clicks: ClickEvent[];
@@ -331,5 +332,5 @@ export function createInitialSeedData(): LocalStoreData {
   // Sort clicks newest first
   clicks.sort((a, b) => new Date(b.clickedAt).getTime() - new Date(a.clickedAt).getTime());
 
-  return { profile, groups, links, clicks };
+  return { profile, dashboardPin: '2026', groups, links, clicks };
 }

@@ -1,5 +1,5 @@
-import { ArrowRight, Delete, LockKeyhole } from 'lucide-react';
-import { useEffect, useState, type FormEvent } from 'react';
+import { Delete, LockKeyhole } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, setStoredToken } from '../lib/api.ts';
 import type { SchoolProfile } from '../types.ts';
 import { SchoolEmblem } from './SchoolEmblem.tsx';
@@ -14,44 +14,62 @@ export function PinGate({ profile, isDefaultPin, onUnlocked }: PinGateProps) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const verifyCode = useCallback(
+    async (code: string) => {
+      if (code.length !== 4 || submitting) return;
+      setSubmitting(true);
+      setError(null);
+      try {
+        const res = await api.verifyPin(code);
+        setStoredToken(res.token);
+        onUnlocked();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'PIN tidak valid.');
+        setPin('');
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [onUnlocked, submitting]
+  );
+
+  const updatePin = useCallback(
+    (nextPin: string) => {
+      if (submitting) return;
+      const digitsOnly = nextPin.replace(/\D/g, '').slice(0, 4);
+      setError(null);
+      setPin(digitsOnly);
+      if (digitsOnly.length === 4) {
+        void verifyCode(digitsOnly);
+      }
+    },
+    [submitting, verifyCode]
+  );
 
   const handleDigit = (digit: string) => {
-    if (pin.length >= 8) return;
-    setError(null);
-    setPin((prev) => prev + digit);
+    if (pin.length >= 4 || submitting) return;
+    updatePin(pin + digit);
   };
 
   const handleBackspace = () => {
+    if (submitting) return;
     setError(null);
     setPin((prev) => prev.slice(0, -1));
   };
 
-  const handleSubmit = async (e?: FormEvent) => {
-    e?.preventDefault();
-    if (!pin.trim() || submitting) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      const res = await api.verifyPin(pin);
-      setStoredToken(res.token);
-      onUnlocked();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'PIN tidak valid.');
-      setPin('');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (document.activeElement?.tagName === 'INPUT') return;
+      if (document.activeElement === inputRef.current) return;
       if (/^\d$/.test(e.key)) {
         handleDigit(e.key);
       } else if (e.key === 'Backspace') {
         handleBackspace();
-      } else if (e.key === 'Enter') {
-        void handleSubmit();
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -81,30 +99,60 @@ export function PinGate({ profile, isDefaultPin, onUnlocked }: PinGateProps) {
             <span>Akses Dashboard Staf & Analitik</span>
           </div>
           <p className="text-xs text-slate-400 leading-relaxed mb-5">
-            Masukkan PIN pengelola sekolah untuk mengelola tautan singkat, grup event, profil
-            sekolah, dan memantau trafik klik real-time.
+            Ketik atau tekan 4 digit PIN pengelola sekolah. Sistem otomatis memeriksa dan membuka
+            dashboard setelah digit ke-4 terisi.
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="pin-input" className="sr-only">
-                PIN Dashboard Sekolah
-              </label>
+          <div className="space-y-4">
+            {/* 4-Digit Visual PIN Slots + Native Keyboard Input */}
+            <div
+              onClick={() => inputRef.current?.focus()}
+              className="relative cursor-text"
+            >
               <input
+                ref={inputRef}
                 id="pin-input"
                 type="password"
                 inputMode="numeric"
                 autoComplete="off"
-                maxLength={8}
+                maxLength={4}
                 value={pin}
-                onChange={(e) => {
-                  setError(null);
-                  setPin(e.target.value.replace(/\D/g, ''));
-                }}
-                placeholder="••••"
-                className="w-full bg-[#090D16] border border-slate-700 focus:border-blue-500 focus:outline-none rounded-xl px-4 py-3 text-center font-mono-tabular text-2xl tracking-[0.45em] text-slate-100 placeholder:text-slate-600"
+                disabled={submitting}
+                onChange={(e) => updatePin(e.target.value)}
+                aria-label="PIN 4 digit"
+                className="sr-only"
               />
+              <div className="grid grid-cols-4 gap-3">
+                {[0, 1, 2, 3].map((idx) => {
+                  const filled = idx < pin.length;
+                  const active = idx === pin.length && !submitting;
+                  return (
+                    <div
+                      key={idx}
+                      className={`h-14 rounded-xl bg-[#090D16] border flex items-center justify-center transition-colors ${
+                        error
+                          ? 'border-rose-500/80'
+                          : active
+                          ? 'border-blue-500'
+                          : filled
+                          ? 'border-slate-600'
+                          : 'border-slate-800'
+                      }`}
+                    >
+                      {filled ? (
+                        <span className="w-3 h-3 rounded-full bg-blue-400" />
+                      ) : (
+                        <span className="w-2 h-0.5 bg-slate-700 rounded-full" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
+
+            {submitting && (
+              <p className="text-xs text-blue-400 text-center">Memverifikasi PIN...</p>
+            )}
 
             {error && (
               <div
@@ -115,42 +163,48 @@ export function PinGate({ profile, isDefaultPin, onUnlocked }: PinGateProps) {
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2 pt-1">
               {keypadDigits.map((digit) => (
                 <button
                   key={digit}
                   type="button"
+                  disabled={submitting}
                   onClick={() => handleDigit(digit)}
-                  className="h-11 rounded-lg bg-[#090D16] border border-slate-800 hover:border-slate-700 hover:bg-slate-800/70 active:scale-[0.98] font-mono-tabular text-base font-medium text-slate-200 transition-colors cursor-pointer"
+                  className="h-11 rounded-lg bg-[#090D16] border border-slate-800 hover:border-slate-700 hover:bg-slate-800/70 active:scale-[0.98] disabled:opacity-50 font-mono-tabular text-base font-medium text-slate-200 transition-colors cursor-pointer"
                 >
                   {digit}
                 </button>
               ))}
               <button
                 type="button"
+                disabled={submitting}
+                onClick={() => {
+                  setError(null);
+                  setPin('');
+                }}
+                className="h-11 rounded-lg bg-[#090D16] border border-slate-800 hover:border-slate-700 hover:bg-slate-800/70 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => handleDigit('0')}
+                className="h-11 rounded-lg bg-[#090D16] border border-slate-800 hover:border-slate-700 hover:bg-slate-800/70 active:scale-[0.98] disabled:opacity-50 font-mono-tabular text-base font-medium text-slate-200 transition-colors cursor-pointer"
+              >
+                0
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
                 onClick={handleBackspace}
                 aria-label="Hapus digit"
                 className="h-11 rounded-lg bg-[#090D16] border border-slate-800 hover:border-slate-700 hover:bg-slate-800/70 flex items-center justify-center text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
               >
                 <Delete className="w-4 h-4" />
               </button>
-              <button
-                type="button"
-                onClick={() => handleDigit('0')}
-                className="h-11 rounded-lg bg-[#090D16] border border-slate-800 hover:border-slate-700 hover:bg-slate-800/70 active:scale-[0.98] font-mono-tabular text-base font-medium text-slate-200 transition-colors cursor-pointer"
-              >
-                0
-              </button>
-              <button
-                type="submit"
-                disabled={!pin || submitting}
-                className="h-11 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:hover:bg-blue-600 flex items-center justify-center gap-1.5 text-sm font-medium text-white transition-colors cursor-pointer whitespace-nowrap"
-              >
-                <span>{submitting ? '...' : 'Masuk'}</span>
-                {!submitting && <ArrowRight className="w-4 h-4" />}
-              </button>
             </div>
-          </form>
+          </div>
 
           <div className="mt-5 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
             <span>Tautan & portal event publik tetap terbuka</span>

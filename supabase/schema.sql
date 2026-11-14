@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS smplink_school_profile (
   contact_info TEXT NOT NULL DEFAULT '',
   address TEXT NOT NULL DEFAULT '',
   logo_url TEXT NOT NULL DEFAULT '',
+  dashboard_pin TEXT NOT NULL DEFAULT '2026',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -70,6 +71,8 @@ CREATE INDEX IF NOT EXISTS idx_smplink_click_events_clicked_at ON smplink_click_
 CREATE OR REPLACE FUNCTION increment_smplink_link_clicks(target_link_id UUID)
 RETURNS VOID
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   UPDATE smplink_links
@@ -79,11 +82,57 @@ BEGIN
 END;
 $$;
 
+REVOKE EXECUTE ON FUNCTION increment_smplink_link_clicks(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION increment_smplink_link_clicks(UUID) TO service_role;
+
+-- ============================================================================
+-- Row Level Security (RLS)
+-- Mengamankan seluruh tabel agar hanya dapat diakses lewat backend (service_role).
+-- Akses langsung via anon key dari browser otomatis ditolak (melindungi dashboard_pin).
+-- ============================================================================
+
+ALTER TABLE smplink_school_profile ENABLE ROW LEVEL SECURITY;
+ALTER TABLE smplink_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE smplink_links ENABLE ROW LEVEL SECURITY;
+ALTER TABLE smplink_click_events ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "service_role_all_smplink_school_profile" ON smplink_school_profile;
+CREATE POLICY "service_role_all_smplink_school_profile"
+  ON smplink_school_profile
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "service_role_all_smplink_groups" ON smplink_groups;
+CREATE POLICY "service_role_all_smplink_groups"
+  ON smplink_groups
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "service_role_all_smplink_links" ON smplink_links;
+CREATE POLICY "service_role_all_smplink_links"
+  ON smplink_links
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "service_role_all_smplink_click_events" ON smplink_click_events;
+CREATE POLICY "service_role_all_smplink_click_events"
+  ON smplink_click_events
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
 -- ============================================================================
 -- Data Awal (Seed) Profil & Program Sekolah
 -- ============================================================================
 
-INSERT INTO smplink_school_profile (id, school_name, npsn, tagline, website_url, contact_info, address, logo_url)
+INSERT INTO smplink_school_profile (id, school_name, npsn, tagline, website_url, contact_info, address, logo_url, dashboard_pin)
 VALUES (
   'default',
   'SMP Negeri 1 Nusantara',
@@ -92,7 +141,8 @@ VALUES (
   'https://smpn1nusantara.sch.id',
   'humas@smpn1nusantara.sch.id · (021) 555-0192',
   'Jl. Pendidikan Raya No. 14, Kota Baru',
-  ''
+  '',
+  '2026'
 )
 ON CONFLICT (id) DO NOTHING;
 

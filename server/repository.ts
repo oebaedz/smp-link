@@ -94,6 +94,7 @@ interface DbProfileRow {
   contact_info: string;
   address: string;
   logo_url: string;
+  dashboard_pin?: string;
   updated_at: string;
 }
 
@@ -177,8 +178,7 @@ class SchoolLinkRepository {
       return {
         ok: false,
         tablesReady: false,
-        message:
-          'Variabel SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY belum diisi di .env.',
+        message: 'Variabel SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY belum diisi di .env.',
       };
     }
 
@@ -266,6 +266,47 @@ class SchoolLinkRepository {
 
     this.localStore.profile = updated;
     return { ...updated };
+  }
+
+  async getDashboardPin(): Promise<string> {
+    if (this.supabase) {
+      const { data, error } = await this.supabase
+        .from('smplink_school_profile')
+        .select('dashboard_pin')
+        .eq('id', 'default')
+        .maybeSingle<{ dashboard_pin?: string }>();
+      if (!error && data?.dashboard_pin) {
+        return data.dashboard_pin.trim();
+      }
+    }
+    return this.localStore.dashboardPin || '2026';
+  }
+
+  async updateDashboardPin(newPin: string): Promise<void> {
+    const cleanPin = newPin.trim();
+    if (!/^\d{4}$/.test(cleanPin)) {
+      throw new Error('PIN dashboard harus terdiri dari tepat 4 digit angka.');
+    }
+
+    if (this.supabase) {
+      const current = await this.getProfile();
+      const { error } = await this.supabase.from('smplink_school_profile').upsert({
+        id: 'default',
+        school_name: current.schoolName,
+        npsn: current.npsn,
+        tagline: current.tagline,
+        website_url: current.websiteUrl,
+        contact_info: current.contactInfo,
+        address: current.address,
+        logo_url: current.logoUrl,
+        dashboard_pin: cleanPin,
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw new Error(error.message);
+      return;
+    }
+
+    this.localStore.dashboardPin = cleanPin;
   }
 
   async listGroups(): Promise<SchoolGroup[]> {

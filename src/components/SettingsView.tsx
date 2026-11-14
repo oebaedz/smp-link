@@ -120,15 +120,14 @@ export function SettingsView({ onNotify }: SettingsViewProps) {
           </div>
 
           <p className="text-xs text-slate-400 leading-relaxed">
-            Untuk beralih dari data dummy lokal ke Supabase & deploy ke Vercel, atur variabel
-            lingkungan berikut di <span className="font-mono-tabular text-slate-200">.env</span>{' '}
-            atau Environment Variables Vercel:
+            Cukup isi <strong className="text-slate-200">2 variabel</strong> berikut di{' '}
+            <span className="font-mono-tabular text-slate-200">.env</span> atau Environment Variables
+            Vercel (ambil dari <strong className="text-slate-200">Supabase → Project Settings → API</strong>):
           </p>
 
           <div className="bg-[#090D16] border border-slate-800 rounded-xl p-3.5 font-mono-tabular text-xs text-slate-300 space-y-1">
             <p>SUPABASE_URL=https://xxxx.supabase.co</p>
             <p>SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...</p>
-            <p>DASHBOARD_PIN=2026</p>
           </div>
 
           {testResult && (
@@ -150,46 +149,49 @@ export function SettingsView({ onNotify }: SettingsViewProps) {
             <KeyRound className="w-5 h-5 text-blue-400 shrink-0" />
             <div>
               <h2 className="font-display text-base font-semibold text-slate-100">
-                Keamanan PIN Dashboard
+                Keamanan PIN Dashboard (4 Digit)
               </h2>
               <p className="text-xs text-slate-400">
                 Status:{' '}
                 {info?.hasCustomPin
-                  ? 'Menggunakan PIN kustom dari environment'
+                  ? 'Menggunakan PIN kustom tersimpan'
                   : 'Menggunakan PIN awal bawaan (2026)'}
               </p>
             </div>
           </div>
 
           <p className="text-xs text-slate-400 leading-relaxed">
-            Ubah PIN sementara untuk sesi server berjalan, atau tetapkan variabel{' '}
-            <span className="font-mono-tabular text-slate-200">DASHBOARD_PIN</span> di Vercel agar
-            PIN tersimpan permanen setelah server dimulai ulang.
+            PIN disimpan langsung di tabel{' '}
+            <span className="font-mono-tabular text-slate-200">smplink_school_profile</span>{' '}
+            (kolom <span className="font-mono-tabular text-slate-200">dashboard_pin</span>), sehingga
+            perubahan langsung permanen di database tanpa perlu ubah{' '}
+            <span className="font-mono-tabular text-slate-200">.env</span>.
           </p>
 
           <form onSubmit={handleUpdatePin} className="flex items-end gap-3 pt-1">
             <div className="flex-1">
               <label htmlFor="new-pin" className="block text-xs text-slate-400 mb-1.5">
-                PIN Baru (4–8 digit angka)
+                PIN Baru (Tepat 4 digit angka)
               </label>
               <input
                 id="new-pin"
                 type="password"
                 inputMode="numeric"
-                pattern="\d{4,8}"
+                pattern="\d{4}"
+                maxLength={4}
                 required
                 value={newPin}
-                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
+                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 placeholder="Contoh: 4519"
                 className="w-full bg-[#090D16] border border-slate-700 focus:border-blue-500 focus:outline-none rounded-xl px-3.5 py-2 text-sm font-mono-tabular text-slate-100"
               />
             </div>
             <button
               type="submit"
-              disabled={savingPin || newPin.length < 4}
+              disabled={savingPin || newPin.length !== 4}
               className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-sm font-medium text-white transition-colors cursor-pointer whitespace-nowrap"
             >
-              {savingPin ? 'Menyimpan...' : 'Perbarui PIN'}
+              {savingPin ? 'Menyimpan...' : 'Simpan PIN'}
             </button>
           </form>
 

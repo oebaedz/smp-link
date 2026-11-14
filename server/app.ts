@@ -8,16 +8,6 @@ function getSessionSecret(): string {
   return process.env.SESSION_SECRET?.trim() || 'smplink-session-signing-key-2026';
 }
 
-let runtimePinOverride: string | null = null;
-
-function getActivePin(): string {
-  return runtimePinOverride || process.env.DASHBOARD_PIN?.trim() || '2026';
-}
-
-function isUsingDefaultPin(): boolean {
-  return !runtimePinOverride && !process.env.DASHBOARD_PIN?.trim();
-}
-
 function signSessionToken(): string {
   const payload = Buffer.from(
     JSON.stringify({
@@ -103,20 +93,23 @@ export function createApiApp() {
   app.get('/api/auth/status', async (req, res) => {
     const token = extractToken(req);
     const authenticated = verifySessionToken(token);
-    const profile = await repository.getProfile();
+    const [profile, activePin] = await Promise.all([
+      repository.getProfile(),
+      repository.getDashboardPin(),
+    ]);
     res.json({
       authenticated,
-      isDefaultPin: isUsingDefaultPin(),
+      isDefaultPin: activePin === '2026',
       profile,
     });
   });
 
-  app.post('/api/auth/verify', (req, res) => {
+  app.post('/api/auth/verify', async (req, res) => {
     const pin = typeof req.body?.pin === 'string' ? req.body.pin.trim() : '';
-    const activePin = getActivePin();
+    const activePin = await repository.getDashboardPin();
 
     if (!pin || pin !== activePin) {
-      res.status(401).json({ error: 'PIN salah. Silakan periksa kembali PIN staf sekolah.' });
+      res.status(401).json({ error: 'PIN salah. Silakan periksa kembali 4 digit PIN staf sekolah.' });
       return;
     }
 
@@ -481,11 +474,12 @@ export function createApiApp() {
     }
   });
 
-  app.get('/api/settings/info', requirePinAuth, (_req, res) => {
+  app.get('/api/settings/info', requirePinAuth, async (_req, res) => {
+    const activePin = await repository.getDashboardPin();
     res.json({
       mode: repository.getMode(),
       supabaseConfigured: repository.isSupabaseConfigured(),
-      hasCustomPin: !isUsingDefaultPin(),
+      hasCustomPin: activePin !== '2026',
       sqlSchema: repository.getSqlSchema(),
     });
   });
@@ -495,18 +489,19 @@ export function createApiApp() {
     res.json(result);
   });
 
-  app.post('/api/settings/update-pin', requirePinAuth, (req, res) => {
-    const newPin = typeof req.body?.pin === 'string' ? req.body.pin.trim() : '';
-    if (!/^\d{4,8}$/.test(newPin)) {
-      res.status(400).json({ error: 'PIN harus berupa 4 hingga 8 digit angka.' });
-      return;
+  app.post('/api/settings/update-pin', requirePinAuth, async (req, res) => {
+    try {
+      const newPin = typeof req.body?.pin === 'string' ? req.body.pin.trim() : '';
+      await repository.updateDashboardPin(newPin);
+      res.json({
+        ok: true,
+        message: 'PIN 4 digit berhasil disimpan ke profil sekolah.',
+      });
+    } catch (err) {
+      res.status(400).json({
+        error: err instanceof Error ? err.message : 'Gagal memperbarui PIN.',
+      });
     }
-    runtimePinOverride = newPin;
-    res.json({
-      ok: true,
-      message:
-        'PIN sesi aktif diperbarui. Untuk permanen di Vercel/production, atur variabel DASHBOARD_PIN di environment.',
-    });
   });
 
   return app;
