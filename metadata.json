@@ -1,0 +1,6 @@
+{
+  "name": "SMPLink — Manajemen Link & Analitik Sekolah",
+  "description": "Portal manajemen tautan singkat sekolah dengan pengelompokan event program, kustomisasi URL, analitik klik real-time, generator QR Code, dan direktori publik per event.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
