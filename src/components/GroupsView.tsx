@@ -1,4 +1,4 @@
-import { ArrowUpRight, Check, Copy, FolderPlus, Pencil, Trash2 } from 'lucide-react';
+import { ArrowUpRight, Check, Copy, FolderPlus, Pencil, QrCode, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { buildEventDirectoryUrl, formatNumber } from '../lib/api.ts';
 import type { SchoolGroup, SchoolLink } from '../types.ts';
@@ -10,6 +10,7 @@ interface GroupsViewProps {
   onEditGroup: (group: SchoolGroup) => void;
   onDeleteGroup: (groupId: string) => Promise<void>;
   onSelectGroupLinks: (groupId: string) => void;
+  onOpenEventQr: (group: SchoolGroup) => void;
   onNotify: (message: string) => void;
 }
 
@@ -20,6 +21,7 @@ export function GroupsView({
   onEditGroup,
   onDeleteGroup,
   onSelectGroupLinks,
+  onOpenEventQr,
   onNotify,
 }: GroupsViewProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -168,7 +170,7 @@ export function GroupsView({
                   </button>
 
                   {group.isPublicDirectory && (
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => handleCopyPortal(group)}
@@ -180,6 +182,15 @@ export function GroupsView({
                           <Copy className="w-3.5 h-3.5 text-slate-400" />
                         )}
                         <span>/event/{group.slug}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onOpenEventQr(group)}
+                        title="QR Code Portal Event"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#090D16] border border-slate-800 hover:border-slate-700 text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
+                      >
+                        <QrCode className="w-3.5 h-3.5 text-blue-400" />
+                        <span>QR Event</span>
                       </button>
                       <a
                         href={`/event/${group.slug}`}

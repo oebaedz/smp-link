@@ -18,11 +18,12 @@ import { LinksTableView } from './components/LinksTableView.tsx';
 import { PinGate } from './components/PinGate.tsx';
 import { PublicEventDirectory } from './components/PublicEventDirectory.tsx';
 import { PublicLinkStatus } from './components/PublicLinkStatus.tsx';
-import { QrCodeModal } from './components/QrCodeModal.tsx';
+import { QrCodeModal, type QrTarget } from './components/QrCodeModal.tsx';
 import { SchoolEmblem } from './components/SchoolEmblem.tsx';
 import { SchoolProfileView } from './components/SchoolProfileView.tsx';
 import { SettingsView } from './components/SettingsView.tsx';
 import { api, getStoredToken, setStoredToken } from './lib/api.ts';
+import { syncDocumentHead } from './lib/head.ts';
 import type {
   AnalyticsRange,
   AnalyticsSummary,
@@ -73,7 +74,7 @@ function DashboardShell() {
   const [editingLink, setEditingLink] = useState<SchoolLink | null>(null);
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<SchoolGroup | null>(null);
-  const [qrLink, setQrLink] = useState<SchoolLink | null>(null);
+  const [qrTarget, setQrTarget] = useState<QrTarget | null>(null);
 
   const [toast, setToast] = useState<string | null>(null);
 
@@ -86,6 +87,17 @@ function DashboardShell() {
     const t = setTimeout(() => setToast(null), 2600);
     return () => clearTimeout(t);
   }, [toast]);
+
+  // Keep browser tab title & favicon synced with SchoolProfile
+  useEffect(() => {
+    if (!profile) return;
+    const tabTitle = profile.tabTitle?.trim() || `${profile.schoolName} — Portal Link Sekolah`;
+    syncDocumentHead({
+      title: tabTitle,
+      iconUrl: profile.logoUrl,
+      schoolName: profile.schoolName,
+    });
+  }, [profile]);
 
   // Verify initial session
   useEffect(() => {
@@ -230,17 +242,29 @@ function DashboardShell() {
     );
   }
 
-  const navItems: Array<{ id: DashboardTab; label: string; icon: typeof BarChart2 }> = [
-    { id: 'analytics', label: 'Ringkasan Analitik', icon: BarChart2 },
-    { id: 'links', label: 'Semua Link', icon: Link2 },
-    { id: 'groups', label: 'Grup Event & Program', icon: FolderKanban },
-    { id: 'profile', label: 'Profil Sekolah', icon: Building2 },
-    { id: 'settings', label: 'Koneksi DB & PIN', icon: Database },
+  const navItems: Array<{
+    id: DashboardTab;
+    label: string;
+    mobileLabel: string;
+    icon: typeof BarChart2;
+  }> = [
+    { id: 'analytics', label: 'Ringkasan Analitik', mobileLabel: 'Analitik', icon: BarChart2 },
+    { id: 'links', label: 'Semua Link', mobileLabel: 'Link', icon: Link2 },
+    { id: 'groups', label: 'Grup Event & Program', mobileLabel: 'Event', icon: FolderKanban },
+    { id: 'profile', label: 'Profil Sekolah', mobileLabel: 'Profil', icon: Building2 },
+    { id: 'settings', label: 'Koneksi DB & PIN', mobileLabel: 'Sistem', icon: Database },
   ];
 
   const activeTabTitle = navItems.find((n) => n.id === activeTab)?.label || 'Dashboard';
 
-  const qrGroup = qrLink ? groups.find((g) => g.id === qrLink.groupId) : undefined;
+  const openLinkQr = (link: SchoolLink) => {
+    const group = groups.find((g) => g.id === link.groupId);
+    setQrTarget({ type: 'link', link, group });
+  };
+
+  const openEventQr = (group: SchoolGroup) => {
+    setQrTarget({ type: 'group', group });
+  };
 
   return (
     <div className="min-h-screen bg-[#090D16] text-slate-100 flex">
@@ -354,7 +378,7 @@ function DashboardShell() {
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Clean Top Bar */}
-        <header className="sticky top-0 z-30 bg-[#090D16]/90 backdrop-blur-md border-b border-slate-800 px-6 py-3.5 flex items-center justify-between gap-4">
+        <header className="sticky top-0 z-30 bg-[#090D16]/90 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
@@ -365,29 +389,29 @@ function DashboardShell() {
               <Menu className="w-4 h-4" />
             </button>
             <div className="min-w-0">
-              <h1 className="font-display text-base sm:text-lg font-semibold text-slate-100 truncate">
+              <h1 className="font-display text-sm sm:text-lg font-semibold text-slate-100 truncate">
                 {activeTabTitle}
               </h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => {
                 setEditingLink(null);
                 setLinkModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-medium text-white transition-colors cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-medium text-white transition-colors cursor-pointer whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
-              <span>Buat Link Baru</span>
+              <span>Buat Link</span>
             </button>
           </div>
         </header>
 
         {/* Active View Viewport */}
-        <main className="flex-1 p-6 max-w-[1440px] w-full mx-auto">
+        <main className="flex-1 p-4 sm:p-6 pb-20 lg:pb-6 max-w-[1440px] w-full mx-auto">
           {activeTab === 'analytics' && analytics && (
             <AnalyticsView
               analytics={analytics}
@@ -398,7 +422,7 @@ function DashboardShell() {
               liveConnected={liveConnected}
               onRangeChange={setRange}
               onGroupFilterChange={setSelectedGroupId}
-              onOpenQr={(l) => setQrLink(l)}
+              onOpenQr={openLinkQr}
               onSimulateClick={handleSimulateClick}
               onNavigateLinks={() => setActiveTab('links')}
             />
@@ -420,7 +444,7 @@ function DashboardShell() {
               }}
               onDeleteLink={handleDeleteLink}
               onToggleActive={handleToggleLinkActive}
-              onOpenQr={(l) => setQrLink(l)}
+              onOpenQr={openLinkQr}
               onNotify={showToast}
             />
           )}
@@ -442,6 +466,7 @@ function DashboardShell() {
                 setSelectedGroupId(groupId);
                 setActiveTab('links');
               }}
+              onOpenEventQr={openEventQr}
               onNotify={showToast}
             />
           )}
@@ -456,6 +481,30 @@ function DashboardShell() {
 
           {activeTab === 'settings' && <SettingsView onNotify={showToast} />}
         </main>
+
+        {/* Mobile Bottom Tab Navigation (< lg) */}
+        <nav
+          aria-label="Navigasi tab mobile"
+          className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-[#111827]/95 backdrop-blur-md border-t border-slate-800 grid grid-cols-5 h-14"
+        >
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveTab(item.id)}
+                className={`flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors cursor-pointer ${
+                  isActive ? 'text-blue-400' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                <span className="truncate max-w-full px-1">{item.mobileLabel}</span>
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
       {/* Modals */}
@@ -486,10 +535,9 @@ function DashboardShell() {
       />
 
       <QrCodeModal
-        link={qrLink}
-        group={qrGroup}
+        target={qrTarget}
         profile={profile}
-        onClose={() => setQrLink(null)}
+        onClose={() => setQrTarget(null)}
         onNotify={showToast}
       />
 
@@ -497,7 +545,7 @@ function DashboardShell() {
       {toast && (
         <div
           role="status"
-          className="fixed bottom-5 right-5 z-50 bg-[#1E293B] border border-slate-700 text-slate-100 text-xs font-medium px-4 py-2.5 rounded-xl shadow-lg"
+          className="fixed bottom-18 lg:bottom-5 right-4 sm:right-5 z-50 bg-[#1E293B] border border-slate-700 text-slate-100 text-xs font-medium px-4 py-2.5 rounded-xl shadow-lg"
         >
           {toast}
         </div>

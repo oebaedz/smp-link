@@ -94,6 +94,8 @@ interface DbProfileRow {
   contact_info: string;
   address: string;
   logo_url: string;
+  tab_title?: string;
+  social_links?: unknown;
   dashboard_pin?: string;
   updated_at: string;
 }
@@ -221,17 +223,22 @@ class SchoolLinkRepository {
         return {
           id: data.id,
           schoolName: data.school_name,
+          tabTitle: data.tab_title ?? '',
           npsn: data.npsn,
           tagline: data.tagline,
           websiteUrl: data.website_url,
           contactInfo: data.contact_info,
           address: data.address,
           logoUrl: data.logo_url,
+          socialLinks: Array.isArray(data.social_links) ? data.social_links : [],
           updatedAt: data.updated_at,
         };
       }
     }
-    return { ...this.localStore.profile };
+    return {
+      ...this.localStore.profile,
+      socialLinks: [...this.localStore.profile.socialLinks],
+    };
   }
 
   async updateProfile(input: Partial<Omit<SchoolProfile, 'id' | 'updatedAt'>>): Promise<SchoolProfile> {
@@ -239,12 +246,23 @@ class SchoolLinkRepository {
     const updated: SchoolProfile = {
       ...current,
       schoolName: input.schoolName?.trim() || current.schoolName,
+      tabTitle: input.tabTitle !== undefined ? input.tabTitle.trim() : current.tabTitle,
       npsn: input.npsn !== undefined ? input.npsn.trim() : current.npsn,
       tagline: input.tagline !== undefined ? input.tagline.trim() : current.tagline,
       websiteUrl: input.websiteUrl !== undefined ? input.websiteUrl.trim() : current.websiteUrl,
       contactInfo: input.contactInfo !== undefined ? input.contactInfo.trim() : current.contactInfo,
       address: input.address !== undefined ? input.address.trim() : current.address,
       logoUrl: input.logoUrl !== undefined ? input.logoUrl.trim() : current.logoUrl,
+      socialLinks: Array.isArray(input.socialLinks)
+        ? input.socialLinks
+            .filter((s) => s && s.url && s.url.trim())
+            .map((s) => ({
+              id: s.id || crypto.randomUUID(),
+              platform: s.platform,
+              label: (s.label || s.platform).trim(),
+              url: s.url.trim(),
+            }))
+        : current.socialLinks,
       updatedAt: new Date().toISOString(),
     };
 
@@ -252,12 +270,14 @@ class SchoolLinkRepository {
       const { error } = await this.supabase.from('smplink_school_profile').upsert({
         id: 'default',
         school_name: updated.schoolName,
+        tab_title: updated.tabTitle,
         npsn: updated.npsn,
         tagline: updated.tagline,
         website_url: updated.websiteUrl,
         contact_info: updated.contactInfo,
         address: updated.address,
         logo_url: updated.logoUrl,
+        social_links: updated.socialLinks,
         updated_at: updated.updatedAt,
       });
       if (error) throw new Error(error.message);
@@ -265,7 +285,7 @@ class SchoolLinkRepository {
     }
 
     this.localStore.profile = updated;
-    return { ...updated };
+    return { ...updated, socialLinks: [...updated.socialLinks] };
   }
 
   async getDashboardPin(): Promise<string> {
@@ -293,12 +313,14 @@ class SchoolLinkRepository {
       const { error } = await this.supabase.from('smplink_school_profile').upsert({
         id: 'default',
         school_name: current.schoolName,
+        tab_title: current.tabTitle,
         npsn: current.npsn,
         tagline: current.tagline,
         website_url: current.websiteUrl,
         contact_info: current.contactInfo,
         address: current.address,
         logo_url: current.logoUrl,
+        social_links: current.socialLinks,
         dashboard_pin: cleanPin,
         updated_at: new Date().toISOString(),
       });

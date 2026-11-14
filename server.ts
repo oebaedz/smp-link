@@ -6,8 +6,8 @@ import { createApiApp } from './server/app.ts';
 
 async function startServer() {
   const app = createApiApp();
-  const port = Number(process.env.PORT) || 3000;
   const isProd = process.env.NODE_ENV === 'production';
+  const port = isProd ? Number(process.env.PORT) || 3000 : 3000;
 
   if (!isProd) {
     const { createServer: createViteServer } = await import('vite');

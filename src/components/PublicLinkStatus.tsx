@@ -1,6 +1,7 @@
 import { AlertTriangle, Clock, PauseCircle, SearchX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { api, formatDateTimeId } from '../lib/api.ts';
+import { syncDocumentHead } from '../lib/head.ts';
 import type { SchoolProfile } from '../types.ts';
 import { SchoolEmblem } from './SchoolEmblem.tsx';
 
@@ -26,7 +27,14 @@ export function PublicLinkStatus({ slug }: PublicLinkStatusProps) {
   useEffect(() => {
     api
       .getPublicLinkStatus(slug)
-      .then((res) => setData(res))
+      .then((res) => {
+        setData(res);
+        syncDocumentHead({
+          title: `Status Tautan · ${res.profile.tabTitle?.trim() || res.profile.schoolName}`,
+          iconUrl: res.profile.logoUrl,
+          schoolName: res.profile.schoolName,
+        });
+      })
       .finally(() => setLoading(false));
   }, [slug]);
 

@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS smplink_school_profile (
   contact_info TEXT NOT NULL DEFAULT '',
   address TEXT NOT NULL DEFAULT '',
   logo_url TEXT NOT NULL DEFAULT '',
+  tab_title TEXT NOT NULL DEFAULT '',
+  social_links JSONB NOT NULL DEFAULT '[]'::jsonb,
   dashboard_pin TEXT NOT NULL DEFAULT '2026',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -132,7 +134,7 @@ CREATE POLICY "service_role_all_smplink_click_events"
 -- Data Awal (Seed) Profil & Program Sekolah
 -- ============================================================================
 
-INSERT INTO smplink_school_profile (id, school_name, npsn, tagline, website_url, contact_info, address, logo_url, dashboard_pin)
+INSERT INTO smplink_school_profile (id, school_name, npsn, tagline, website_url, contact_info, address, logo_url, tab_title, social_links, dashboard_pin)
 VALUES (
   'default',
   'SMP Negeri 1 Nusantara',
@@ -142,6 +144,8 @@ VALUES (
   'humas@smpn1nusantara.sch.id · (021) 555-0192',
   'Jl. Pendidikan Raya No. 14, Kota Baru',
   '',
+  'SMPLink — SMP Negeri 1 Nusantara',
+  '[{"id":"soc-ig","platform":"instagram","label":"Instagram","url":"https://instagram.com"},{"id":"soc-yt","platform":"youtube","label":"YouTube","url":"https://youtube.com"},{"id":"soc-wa","platform":"whatsapp","label":"WhatsApp Humas","url":"https://wa.me/6281200000000"}]'::jsonb,
   '2026'
 )
 ON CONFLICT (id) DO NOTHING;

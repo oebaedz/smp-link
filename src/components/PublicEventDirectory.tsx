@@ -1,8 +1,10 @@
 import { ArrowUpRight, Clock, ExternalLink } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { api, formatDateTimeId } from '../lib/api.ts';
+import { syncDocumentHead } from '../lib/head.ts';
 import type { SchoolGroup, SchoolLink, SchoolProfile } from '../types.ts';
 import { SchoolEmblem } from './SchoolEmblem.tsx';
+import { SOCIAL_PLATFORM_LABELS, SocialIcon } from './SocialIcon.tsx';
 
 interface PublicEventDirectoryProps {
   groupSlug: string;
@@ -23,7 +25,15 @@ export function PublicEventDirectory({ groupSlug }: PublicEventDirectoryProps) {
     setError(null);
     api
       .getPublicEvent(groupSlug)
-      .then((res) => setData(res))
+      .then((res) => {
+        setData(res);
+        const baseTitle = res.profile.tabTitle?.trim() || res.profile.schoolName;
+        syncDocumentHead({
+          title: `${res.group.name} · ${baseTitle}`,
+          iconUrl: res.profile.logoUrl,
+          schoolName: res.profile.schoolName,
+        });
+      })
       .catch((err) => {
         setError(err instanceof Error ? err.message : 'Portal event tidak ditemukan.');
       })
@@ -64,12 +74,13 @@ export function PublicEventDirectory({ groupSlug }: PublicEventDirectoryProps) {
   }
 
   const { profile, group, links, upcomingLinks } = data;
+  const socialLinks = profile.socialLinks || [];
 
   return (
-    <div className="min-h-screen bg-[#090D16] text-slate-100 py-10 px-4 sm:px-6">
+    <div className="min-h-screen bg-[#090D16] text-slate-100 py-8 sm:py-10 px-4 sm:px-6">
       <div className="w-full max-w-xl mx-auto space-y-6">
         {/* School Identity Header */}
-        <header className="bg-[#111827] border border-slate-800 rounded-2xl p-6 space-y-4">
+        <header className="bg-[#111827] border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-4">
           <div className="flex items-center gap-3.5">
             <SchoolEmblem schoolName={profile.schoolName} logoUrl={profile.logoUrl} size="lg" />
             <div className="min-w-0">
@@ -153,8 +164,34 @@ export function PublicEventDirectory({ groupSlug }: PublicEventDirectoryProps) {
           )}
         </main>
 
+        {/* Social Media Links with Brand Logos */}
+        {socialLinks.length > 0 && (
+          <section
+            aria-label="Media sosial resmi sekolah"
+            className="bg-[#111827] border border-slate-800 rounded-2xl p-5 space-y-3"
+          >
+            <p className="text-xs font-medium text-slate-400 text-center">
+              Kanal Resmi & Media Sosial Sekolah
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2.5">
+              {socialLinks.map((soc) => (
+                <a
+                  key={soc.id}
+                  href={soc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#090D16] border border-slate-800 hover:border-blue-500/60 hover:text-blue-300 text-xs font-medium text-slate-200 transition-colors"
+                >
+                  <SocialIcon platform={soc.platform} className="w-4 h-4 text-blue-400 shrink-0" />
+                  <span>{soc.label || SOCIAL_PLATFORM_LABELS[soc.platform]}</span>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* School Footer */}
-        <footer className="pt-4 border-t border-slate-800/70 text-center space-y-1.5 text-xs text-slate-500">
+        <footer className="pt-2 border-t border-slate-800/70 text-center space-y-1.5 text-xs text-slate-500">
           {profile.address && <p>{profile.address}</p>}
           {profile.contactInfo && <p>{profile.contactInfo}</p>}
           {profile.websiteUrl && (

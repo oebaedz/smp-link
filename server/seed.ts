@@ -24,12 +24,18 @@ export function createInitialSeedData(): LocalStoreData {
   const profile: SchoolProfile = {
     id: 'default',
     schoolName: 'SMP Negeri 1 Nusantara',
+    tabTitle: 'SMPLink — SMP Negeri 1 Nusantara',
     npsn: '20219845',
     tagline: 'Pusat Tautan Resmi Layanan Digital, PPDB, dan Kegiatan Siswa',
     websiteUrl: 'https://smpn1nusantara.sch.id',
     contactInfo: 'humas@smpn1nusantara.sch.id · (021) 555-0192',
     address: 'Jl. Pendidikan Raya No. 14, Kota Baru',
     logoUrl: '',
+    socialLinks: [
+      { id: 'soc-ig', platform: 'instagram', label: 'Instagram', url: 'https://instagram.com' },
+      { id: 'soc-yt', platform: 'youtube', label: 'YouTube', url: 'https://youtube.com' },
+      { id: 'soc-wa', platform: 'whatsapp', label: 'WhatsApp Humas', url: 'https://wa.me/6281200000000' },
+    ],
     updatedAt: daysAgo(1),
   };
 

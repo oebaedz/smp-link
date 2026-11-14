@@ -13,15 +13,34 @@ export type ClickSource = 'Direct / QR' | 'Direktori Event' | 'Media Sosial / Ch
 
 export type AnalyticsRange = '24h' | '7d' | '30d';
 
+export type SocialPlatform =
+  | 'instagram'
+  | 'youtube'
+  | 'tiktok'
+  | 'facebook'
+  | 'whatsapp'
+  | 'x'
+  | 'telegram'
+  | 'website';
+
+export interface SocialLinkItem {
+  id: string;
+  platform: SocialPlatform;
+  label: string;
+  url: string;
+}
+
 export interface SchoolProfile {
   id: string;
   schoolName: string;
+  tabTitle: string;
   npsn: string;
   tagline: string;
   websiteUrl: string;
   contactInfo: string;
   address: string;
   logoUrl: string;
+  socialLinks: SocialLinkItem[];
   updatedAt: string;
 }
 

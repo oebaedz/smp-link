@@ -1,27 +1,60 @@
 import { Check, Copy, Download, FileCode2, X } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
-import { buildShortUrl } from '../lib/api.ts';
+import { buildEventDirectoryUrl, buildShortUrl } from '../lib/api.ts';
 import type { SchoolGroup, SchoolLink, SchoolProfile } from '../types.ts';
 
+export type QrTarget =
+  | { type: 'link'; link: SchoolLink; group?: SchoolGroup }
+  | { type: 'group'; group: SchoolGroup };
+
 interface QrCodeModalProps {
-  link: SchoolLink | null;
-  group?: SchoolGroup;
+  target: QrTarget | null;
   profile: SchoolProfile;
   onClose: () => void;
   onNotify: (message: string) => void;
 }
 
-export function QrCodeModal({ link, group, profile, onClose, onNotify }: QrCodeModalProps) {
+export function QrCodeModal({ target, profile, onClose, onNotify }: QrCodeModalProps) {
   const [svgMarkup, setSvgMarkup] = useState<string>('');
   const [dataUrl, setDataUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
 
-  const qrUrl = link ? `${buildShortUrl(link.slug)}?src=qr` : '';
-  const displayUrl = link ? buildShortUrl(link.slug) : '';
+  const isGroup = target?.type === 'group';
+  const qrUrl = !target
+    ? ''
+    : target.type === 'group'
+    ? buildEventDirectoryUrl(target.group.slug)
+    : `${buildShortUrl(target.link.slug)}?src=qr`;
+
+  const displayUrl = !target
+    ? ''
+    : target.type === 'group'
+    ? buildEventDirectoryUrl(target.group.slug)
+    : buildShortUrl(target.link.slug);
+
+  const titleText = !target
+    ? ''
+    : target.type === 'group'
+    ? target.group.name
+    : target.link.title;
+
+  const subText = !target
+    ? ''
+    : target.type === 'group'
+    ? `Portal Direktori Event · ${target.group.category}`
+    : target.group
+    ? `${target.group.category} · ${target.group.name}`
+    : '';
+
+  const filePrefix = !target
+    ? 'qr'
+    : target.type === 'group'
+    ? `qr-event-${target.group.slug}`
+    : `qr-${target.link.slug}`;
 
   useEffect(() => {
-    if (!link) return;
+    if (!target || !qrUrl) return;
     let active = true;
 
     Promise.all([
@@ -49,15 +82,15 @@ export function QrCodeModal({ link, group, profile, onClose, onNotify }: QrCodeM
     return () => {
       active = false;
     };
-  }, [link, qrUrl]);
+  }, [target, qrUrl]);
 
-  if (!link) return null;
+  if (!target) return null;
 
   const handleCopyUrl = async () => {
     try {
       await navigator.clipboard.writeText(displayUrl);
       setCopied(true);
-      onNotify('URL singkat disalin ke papan klip');
+      onNotify(isGroup ? 'URL portal event disalin ke papan klip' : 'URL singkat disalin ke papan klip');
       setTimeout(() => setCopied(false), 1800);
     } catch {
       onNotify('Gagal menyalin URL');
@@ -72,7 +105,6 @@ export function QrCodeModal({ link, group, profile, onClose, onNotify }: QrCodeM
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clean high-contrast printable poster card
     ctx.fillStyle = '#090D16';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -80,26 +112,22 @@ export function QrCodeModal({ link, group, profile, onClose, onNotify }: QrCodeM
     ctx.lineWidth = 4;
     ctx.strokeRect(24, 24, canvas.width - 48, canvas.height - 48);
 
-    // School Header
     ctx.fillStyle = '#94A3B8';
     ctx.font = '600 26px "Plus Jakarta Sans", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(profile.schoolName.toUpperCase(), canvas.width / 2, 92);
 
-    if (group) {
+    if (subText) {
       ctx.fillStyle = '#60A5FA';
       ctx.font = '500 22px "DM Sans", sans-serif';
-      ctx.fillText(`${group.category} · ${group.name}`, canvas.width / 2, 134);
+      ctx.fillText(subText, canvas.width / 2, 134);
     }
 
-    // Link Title
     ctx.fillStyle = '#F8FAFC';
     ctx.font = '700 34px "Plus Jakarta Sans", sans-serif';
-    const titleText =
-      link.title.length > 38 ? `${link.title.slice(0, 35)}...` : link.title;
-    ctx.fillText(titleText, canvas.width / 2, 200);
+    const clampedTitle = titleText.length > 38 ? `${titleText.slice(0, 35)}...` : titleText;
+    ctx.fillText(clampedTitle, canvas.width / 2, 200);
 
-    // White QR Backing Card
     const qrBoxSize = 660;
     const qrBoxX = (canvas.width - qrBoxSize) / 2;
     const qrBoxY = 250;
@@ -112,14 +140,19 @@ export function QrCodeModal({ link, group, profile, onClose, onNotify }: QrCodeM
     img.onload = () => {
       ctx.drawImage(img, qrBoxX + 30, qrBoxY + 30, qrBoxSize - 60, qrBoxSize - 60);
 
-      // Short URL printed at bottom
       ctx.fillStyle = '#E2E8F0';
-      ctx.font = '600 28px "JetBrains Mono", monospace';
+      ctx.font = '600 26px "JetBrains Mono", monospace';
       ctx.fillText(displayUrl.replace(/^https?:\/\//, ''), canvas.width / 2, 985);
 
       ctx.fillStyle = '#64748B';
       ctx.font = '400 20px "DM Sans", sans-serif';
-      ctx.fillText('Pindai QR Code dengan kamera ponsel untuk membuka tautan', canvas.width / 2, 1045);
+      ctx.fillText(
+        isGroup
+          ? 'Pindai QR Code untuk membuka direktori tautan event'
+          : 'Pindai QR Code dengan kamera ponsel untuk membuka tautan',
+        canvas.width / 2,
+        1045
+      );
 
       if (profile.websiteUrl) {
         ctx.fillStyle = '#475569';
@@ -128,10 +161,10 @@ export function QrCodeModal({ link, group, profile, onClose, onNotify }: QrCodeM
       }
 
       const downloadAnchor = document.createElement('a');
-      downloadAnchor.download = `qr-${link.slug}.png`;
+      downloadAnchor.download = `${filePrefix}.png`;
       downloadAnchor.href = canvas.toDataURL('image/png');
       downloadAnchor.click();
-      onNotify(`Kartu QR PNG "qr-${link.slug}.png" diunduh`);
+      onNotify(`Kartu QR PNG "${filePrefix}.png" diunduh`);
     };
     img.src = dataUrl;
   };
@@ -142,10 +175,10 @@ export function QrCodeModal({ link, group, profile, onClose, onNotify }: QrCodeM
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `qr-${link.slug}.svg`;
+    a.download = `${filePrefix}.svg`;
     a.click();
     URL.revokeObjectURL(url);
-    onNotify(`Vektor QR SVG "qr-${link.slug}.svg" diunduh`);
+    onNotify(`Vektor QR SVG "${filePrefix}.svg" diunduh`);
   };
 
   return (
@@ -159,10 +192,10 @@ export function QrCodeModal({ link, group, profile, onClose, onNotify }: QrCodeM
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
           <div className="min-w-0">
             <h2 id="qr-modal-title" className="font-display text-base font-semibold text-slate-100 truncate">
-              QR Code Tautan Sekolah
+              {isGroup ? 'QR Code Portal Event' : 'QR Code Tautan Sekolah'}
             </h2>
             <p className="text-xs text-slate-400 truncate">
-              {profile.schoolName} {group ? `· ${group.name}` : ''}
+              {profile.schoolName} {subText ? `· ${subText}` : ''}
             </p>
           </div>
           <button
@@ -177,12 +210,12 @@ export function QrCodeModal({ link, group, profile, onClose, onNotify }: QrCodeM
 
         <div className="p-6 space-y-5">
           <div className="text-center">
-            <p className="text-sm font-medium text-slate-100 mb-3">{link.title}</p>
+            <p className="text-sm font-medium text-slate-100 mb-3">{titleText}</p>
             <div className="inline-flex p-4 bg-white rounded-xl">
               {dataUrl ? (
                 <img
                   src={dataUrl}
-                  alt={`QR Code untuk ${link.title}`}
+                  alt={`QR Code untuk ${titleText}`}
                   className="w-52 h-52 block"
                 />
               ) : (

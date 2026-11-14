@@ -219,12 +219,27 @@ export const api = {
 
   updateProfile: (payload: {
     schoolName: string;
+    tabTitle: string;
     npsn: string;
     tagline: string;
     websiteUrl: string;
     contactInfo: string;
     address: string;
     logoUrl: string;
+    socialLinks: Array<{
+      id: string;
+      platform:
+        | 'instagram'
+        | 'youtube'
+        | 'tiktok'
+        | 'facebook'
+        | 'whatsapp'
+        | 'x'
+        | 'telegram'
+        | 'website';
+      label: string;
+      url: string;
+    }>;
   }) =>
     apiRequest<{ profile: SchoolProfile }>('/api/profile', {
       method: 'PUT',

@@ -452,20 +452,31 @@ export function createApiApp() {
 
   app.put('/api/profile', requirePinAuth, async (req, res) => {
     try {
-      const { schoolName, npsn, tagline, websiteUrl, contactInfo, address, logoUrl } =
-        req.body ?? {};
-      if (!schoolName || typeof schoolName !== 'string' || !schoolName.trim()) {
-        res.status(400).json({ error: 'Nama sekolah wajib diisi.' });
-        return;
-      }
-      const profile = await repository.updateProfile({
+      const {
         schoolName,
+        tabTitle,
         npsn,
         tagline,
         websiteUrl,
         contactInfo,
         address,
         logoUrl,
+        socialLinks,
+      } = req.body ?? {};
+      if (!schoolName || typeof schoolName !== 'string' || !schoolName.trim()) {
+        res.status(400).json({ error: 'Nama sekolah wajib diisi.' });
+        return;
+      }
+      const profile = await repository.updateProfile({
+        schoolName,
+        tabTitle,
+        npsn,
+        tagline,
+        websiteUrl,
+        contactInfo,
+        address,
+        logoUrl,
+        socialLinks,
       });
       realtimeBus.broadcast({ type: 'data:updated', scope: 'profile' });
       res.json({ profile });
