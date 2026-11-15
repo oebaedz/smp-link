@@ -1,4 +1,5 @@
 import {
+  ArrowUpDown,
   ArrowUpRight,
   BarChart3,
   Check,
@@ -37,6 +38,7 @@ interface LinksTableViewProps {
   onDeleteLink: (linkId: string) => Promise<void>;
   onToggleActive: (link: SchoolLink) => Promise<void>;
   onOpenQr: (link: SchoolLink) => void;
+  onReorderGroupLinks: (group: SchoolGroup) => void;
   onNotify: (message: string) => void;
 }
 
@@ -50,6 +52,7 @@ export function LinksTableView({
   onDeleteLink,
   onToggleActive,
   onOpenQr,
+  onReorderGroupLinks,
   onNotify,
 }: LinksTableViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -174,14 +177,32 @@ export function LinksTableView({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onCreateLink}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-medium text-white transition-colors cursor-pointer whitespace-nowrap"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tambah Link</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {selectedGroupId &&
+            groupMap.get(selectedGroupId) &&
+            links.filter((l) => l.groupId === selectedGroupId).length >= 2 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const g = groupMap.get(selectedGroupId);
+                  if (g) onReorderGroupLinks(g);
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#111827] border border-slate-700 hover:border-slate-500 text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
+              >
+                <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+                <span>Urutkan Link</span>
+              </button>
+            )}
+
+          <button
+            type="button"
+            onClick={onCreateLink}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-medium text-white transition-colors cursor-pointer whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Link</span>
+          </button>
+        </div>
       </div>
 
       {/* Links Data Grid */}
@@ -214,8 +235,15 @@ export function LinksTableView({
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-medium text-sm text-slate-100 truncate">{link.title}</p>
-                        <p className="text-xs text-slate-400 truncate">
-                          {group?.name ?? 'Umum'} · {group?.category ?? '—'}
+                        <p className="text-xs text-slate-400 truncate flex items-center gap-1.5">
+                          <span
+                            className="w-1.5 h-1.5 rounded-full shrink-0"
+                            style={{ backgroundColor: group?.accentColor || '#3B82F6' }}
+                            aria-hidden="true"
+                          />
+                          <span className="truncate">
+                            {group?.name ?? 'Umum'} · {group?.category ?? '—'}
+                          </span>
                         </p>
                       </div>
                       <span className="font-mono-tabular text-sm font-semibold text-slate-100 shrink-0">
@@ -359,8 +387,15 @@ export function LinksTableView({
                         </td>
 
                         <td className="py-3 px-4 text-xs text-slate-300">
-                          <p className="truncate max-w-[180px]">{group?.name ?? 'Umum'}</p>
-                          <p className="text-[11px] text-slate-500">{group?.category ?? '—'}</p>
+                          <p className="truncate max-w-[180px] flex items-center gap-1.5">
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: group?.accentColor || '#3B82F6' }}
+                              aria-hidden="true"
+                            />
+                            <span className="truncate">{group?.name ?? 'Umum'}</span>
+                          </p>
+                          <p className="text-[11px] text-slate-500 pl-3.5">{group?.category ?? '—'}</p>
                         </td>
 
                         <td className="py-3 px-4">

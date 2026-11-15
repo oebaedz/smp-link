@@ -217,6 +217,12 @@ export const api = {
       method: 'DELETE',
     }),
 
+  reorderGroupLinks: (groupId: string, linkIds: string[]) =>
+    apiRequest<{ ok: boolean; links: SchoolLink[] }>(`/api/groups/${groupId}/reorder-links`, {
+      method: 'PUT',
+      body: JSON.stringify({ linkIds }),
+    }),
+
   updateProfile: (payload: {
     schoolName: string;
     tabTitle: string;

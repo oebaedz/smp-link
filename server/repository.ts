@@ -118,6 +118,7 @@ interface DbLinkRow {
   slug: string;
   destination_url: string;
   is_active: boolean;
+  sort_order?: number;
   starts_at: string | null;
   expires_at: string | null;
   click_count: number;
@@ -487,19 +488,27 @@ class SchoolLinkRepository {
   }
 
   async listLinks(): Promise<SchoolLink[]> {
+    const sortByManualOrder = (items: SchoolLink[]) =>
+      items.sort((a, b) => {
+        const orderDiff = (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+        if (orderDiff !== 0) return orderDiff;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
     if (this.supabase) {
       const { data, error } = await this.supabase
         .from('smplink_links')
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw new Error(error.message);
-      return (data as DbLinkRow[]).map((row) => ({
+      const mapped: SchoolLink[] = (data as DbLinkRow[]).map((row) => ({
         id: row.id,
         groupId: row.group_id,
         title: row.title,
         slug: row.slug,
         destinationUrl: row.destination_url,
         isActive: row.is_active,
+        sortOrder: typeof row.sort_order === 'number' ? row.sort_order : 0,
         startsAt: row.starts_at,
         expiresAt: row.expires_at,
         clickCount: row.click_count,
@@ -511,14 +520,16 @@ class SchoolLinkRepository {
           expiresAt: row.expires_at,
         }),
       }));
+      return sortByManualOrder(mapped);
     }
 
-    return [...this.localStore.links]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .map((l) => ({
+    return sortByManualOrder(
+      this.localStore.links.map((l) => ({
         ...l,
+        sortOrder: l.sortOrder ?? 0,
         status: computeLinkStatus(l),
-      }));
+      }))
+    );
   }
 
   async getLinkBySlug(slug: string): Promise<SchoolLink | null> {
@@ -561,6 +572,11 @@ class SchoolLinkRepository {
       throw new Error(`Slug "/go/${slug}" sudah digunakan. Pilih kombinasi lain.`);
     }
 
+    const existingLinks = await this.listLinks();
+    const maxSortOrder = existingLinks
+      .filter((l) => l.groupId === input.groupId)
+      .reduce((max, l) => Math.max(max, l.sortOrder ?? 0), 0);
+
     const nowIso = new Date().toISOString();
     const base = {
       id: crypto.randomUUID(),
@@ -569,6 +585,7 @@ class SchoolLinkRepository {
       slug,
       destinationUrl: input.destinationUrl.trim(),
       isActive: input.isActive ?? true,
+      sortOrder: maxSortOrder + 1,
       startsAt: input.startsAt || null,
       expiresAt: input.expiresAt || null,
       clickCount: 0,
@@ -577,20 +594,30 @@ class SchoolLinkRepository {
     };
 
     if (this.supabase) {
-      const { error } = await this.supabase.from('smplink_links').insert({
+      const insertPayload = {
         id: base.id,
         group_id: base.groupId,
         title: base.title,
         slug: base.slug,
         destination_url: base.destinationUrl,
         is_active: base.isActive,
+        sort_order: base.sortOrder,
         starts_at: base.startsAt,
         expires_at: base.expiresAt,
         click_count: 0,
         created_at: base.createdAt,
         updated_at: base.updatedAt,
-      });
-      if (error) throw new Error(error.message);
+      };
+      const { error } = await this.supabase.from('smplink_links').insert(insertPayload);
+      if (error) {
+        if (error.message.includes('sort_order')) {
+          const { sort_order: _ignored, ...fallbackPayload } = insertPayload;
+          const retry = await this.supabase.from('smplink_links').insert(fallbackPayload);
+          if (retry.error) throw new Error(retry.error.message);
+        } else {
+          throw new Error(error.message);
+        }
+      }
     } else {
       this.localStore.links.unshift(base);
     }
@@ -609,6 +636,7 @@ class SchoolLinkRepository {
       slug: string;
       destinationUrl: string;
       isActive: boolean;
+      sortOrder: number;
       startsAt: string | null;
       expiresAt: string | null;
     }>
@@ -644,6 +672,7 @@ class SchoolLinkRepository {
       slug: nextSlug,
       destinationUrl: nextDest,
       isActive: input.isActive !== undefined ? input.isActive : current.isActive,
+      sortOrder: typeof input.sortOrder === 'number' ? input.sortOrder : current.sortOrder,
       startsAt,
       expiresAt,
       clickCount: current.clickCount,
@@ -652,20 +681,33 @@ class SchoolLinkRepository {
     };
 
     if (this.supabase) {
+      const updatePayload = {
+        group_id: updatedBase.groupId,
+        title: updatedBase.title,
+        slug: updatedBase.slug,
+        destination_url: updatedBase.destinationUrl,
+        is_active: updatedBase.isActive,
+        sort_order: updatedBase.sortOrder,
+        starts_at: updatedBase.startsAt,
+        expires_at: updatedBase.expiresAt,
+        updated_at: updatedBase.updatedAt,
+      };
       const { error } = await this.supabase
         .from('smplink_links')
-        .update({
-          group_id: updatedBase.groupId,
-          title: updatedBase.title,
-          slug: updatedBase.slug,
-          destination_url: updatedBase.destinationUrl,
-          is_active: updatedBase.isActive,
-          starts_at: updatedBase.startsAt,
-          expires_at: updatedBase.expiresAt,
-          updated_at: updatedBase.updatedAt,
-        })
+        .update(updatePayload)
         .eq('id', id);
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (error.message.includes('sort_order')) {
+          const { sort_order: _ignored, ...fallbackPayload } = updatePayload;
+          const retry = await this.supabase
+            .from('smplink_links')
+            .update(fallbackPayload)
+            .eq('id', id);
+          if (retry.error) throw new Error(retry.error.message);
+        } else {
+          throw new Error(error.message);
+        }
+      }
     } else {
       const idx = this.localStore.links.findIndex((l) => l.id === id);
       if (idx !== -1) this.localStore.links[idx] = updatedBase;
@@ -675,6 +717,59 @@ class SchoolLinkRepository {
       ...updatedBase,
       status: computeLinkStatus(updatedBase),
     };
+  }
+
+  async reorderGroupLinks(groupId: string, orderedLinkIds: string[]): Promise<SchoolLink[]> {
+    const groups = await this.listGroups();
+    if (!groups.some((g) => g.id === groupId)) {
+      throw new Error('Grup event tidak ditemukan.');
+    }
+
+    const allLinks = await this.listLinks();
+    const groupLinks = allLinks.filter((l) => l.groupId === groupId);
+    const groupLinkIds = new Set(groupLinks.map((l) => l.id));
+
+    const uniqueOrdered: string[] = [];
+    for (const id of orderedLinkIds) {
+      if (groupLinkIds.has(id) && !uniqueOrdered.includes(id)) {
+        uniqueOrdered.push(id);
+      }
+    }
+    for (const l of groupLinks) {
+      if (!uniqueOrdered.includes(l.id)) {
+        uniqueOrdered.push(l.id);
+      }
+    }
+
+    const nowIso = new Date().toISOString();
+
+    if (this.supabase) {
+      for (let i = 0; i < uniqueOrdered.length; i++) {
+        const linkId = uniqueOrdered[i];
+        const { error } = await this.supabase
+          .from('smplink_links')
+          .update({ sort_order: i + 1, updated_at: nowIso })
+          .eq('id', linkId)
+          .eq('group_id', groupId);
+        if (error) {
+          if (error.message.includes('sort_order')) {
+            throw new Error(
+              'Kolom sort_order belum ditambahkan di tabel smplink_links. Jalankan query SQL migrasi di Supabase SQL Editor terlebih dahulu.'
+            );
+          }
+          throw new Error(error.message);
+        }
+      }
+    } else {
+      const orderMap = new Map(uniqueOrdered.map((id, idx) => [id, idx + 1]));
+      this.localStore.links = this.localStore.links.map((l) => {
+        const nextOrder = orderMap.get(l.id);
+        return nextOrder !== undefined ? { ...l, sortOrder: nextOrder, updatedAt: nowIso } : l;
+      });
+    }
+
+    const updatedLinks = await this.listLinks();
+    return updatedLinks.filter((l) => l.groupId === groupId);
   }
 
   async deleteLink(id: string): Promise<void> {

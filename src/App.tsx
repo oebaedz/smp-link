@@ -19,6 +19,7 @@ import { PinGate } from './components/PinGate.tsx';
 import { PublicEventDirectory } from './components/PublicEventDirectory.tsx';
 import { PublicLinkStatus } from './components/PublicLinkStatus.tsx';
 import { QrCodeModal, type QrTarget } from './components/QrCodeModal.tsx';
+import { ReorderLinksModal } from './components/ReorderLinksModal.tsx';
 import { SchoolEmblem } from './components/SchoolEmblem.tsx';
 import { SchoolProfileView } from './components/SchoolProfileView.tsx';
 import { SettingsView } from './components/SettingsView.tsx';
@@ -75,6 +76,7 @@ function DashboardShell() {
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<SchoolGroup | null>(null);
   const [qrTarget, setQrTarget] = useState<QrTarget | null>(null);
+  const [reorderingGroup, setReorderingGroup] = useState<SchoolGroup | null>(null);
 
   const [toast, setToast] = useState<string | null>(null);
 
@@ -445,6 +447,7 @@ function DashboardShell() {
               onDeleteLink={handleDeleteLink}
               onToggleActive={handleToggleLinkActive}
               onOpenQr={openLinkQr}
+              onReorderGroupLinks={(group) => setReorderingGroup(group)}
               onNotify={showToast}
             />
           )}
@@ -467,6 +470,7 @@ function DashboardShell() {
                 setActiveTab('links');
               }}
               onOpenEventQr={openEventQr}
+              onReorderLinks={(group) => setReorderingGroup(group)}
               onNotify={showToast}
             />
           )}
@@ -539,6 +543,16 @@ function DashboardShell() {
         profile={profile}
         onClose={() => setQrTarget(null)}
         onNotify={showToast}
+      />
+
+      <ReorderLinksModal
+        group={reorderingGroup}
+        links={links}
+        onClose={() => setReorderingGroup(null)}
+        onSaved={async () => {
+          showToast('Urutan tautan event berhasil disimpan');
+          await loadDashboardData(range, selectedGroupId);
+        }}
       />
 
       {/* Toast Notification */}

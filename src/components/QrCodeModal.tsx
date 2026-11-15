@@ -53,6 +53,9 @@ export function QrCodeModal({ target, profile, onClose, onNotify }: QrCodeModalP
     ? `qr-event-${target.group.slug}`
     : `qr-${target.link.slug}`;
 
+  const accentColor =
+    (target?.type === 'group' ? target.group.accentColor : target?.group?.accentColor) || '#3B82F6';
+
   useEffect(() => {
     if (!target || !qrUrl) return;
     let active = true;
@@ -112,13 +115,16 @@ export function QrCodeModal({ target, profile, onClose, onNotify }: QrCodeModalP
     ctx.lineWidth = 4;
     ctx.strokeRect(24, 24, canvas.width - 48, canvas.height - 48);
 
+    ctx.fillStyle = accentColor;
+    ctx.fillRect(26, 26, canvas.width - 52, 8);
+
     ctx.fillStyle = '#94A3B8';
     ctx.font = '600 26px "Plus Jakarta Sans", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(profile.schoolName.toUpperCase(), canvas.width / 2, 92);
 
     if (subText) {
-      ctx.fillStyle = '#60A5FA';
+      ctx.fillStyle = accentColor;
       ctx.font = '500 22px "DM Sans", sans-serif';
       ctx.fillText(subText, canvas.width / 2, 134);
     }
@@ -189,6 +195,7 @@ export function QrCodeModal({ target, profile, onClose, onNotify }: QrCodeModalP
       aria-labelledby="qr-modal-title"
     >
       <div className="w-full max-w-md bg-[#111827] border border-slate-800 rounded-2xl overflow-hidden">
+        <div className="h-1 w-full" style={{ backgroundColor: accentColor }} aria-hidden="true" />
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
           <div className="min-w-0">
             <h2 id="qr-modal-title" className="font-display text-base font-semibold text-slate-100 truncate">

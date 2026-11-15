@@ -1,4 +1,4 @@
-import { ArrowUpRight, Check, Copy, FolderPlus, Pencil, QrCode, Trash2 } from 'lucide-react';
+import { ArrowUpDown, ArrowUpRight, Check, Copy, FolderPlus, Pencil, QrCode, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { buildEventDirectoryUrl, formatNumber } from '../lib/api.ts';
 import type { SchoolGroup, SchoolLink } from '../types.ts';
@@ -11,6 +11,7 @@ interface GroupsViewProps {
   onDeleteGroup: (groupId: string) => Promise<void>;
   onSelectGroupLinks: (groupId: string) => void;
   onOpenEventQr: (group: SchoolGroup) => void;
+  onReorderLinks: (group: SchoolGroup) => void;
   onNotify: (message: string) => void;
 }
 
@@ -22,6 +23,7 @@ export function GroupsView({
   onDeleteGroup,
   onSelectGroupLinks,
   onOpenEventQr,
+  onReorderLinks,
   onNotify,
 }: GroupsViewProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -97,112 +99,136 @@ export function GroupsView({
             return (
               <div
                 key={group.id}
-                className="bg-[#111827] border border-slate-800 rounded-xl p-5 flex flex-col justify-between gap-4"
+                className="bg-[#111827] border border-slate-800 rounded-xl overflow-hidden flex flex-col justify-between"
               >
-                <div className="space-y-2.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs text-slate-400">
-                        <span>{group.category}</span>
-                        <span className="mx-1.5 text-slate-600">·</span>
-                        <span
-                          className={
-                            group.isPublicDirectory ? 'text-emerald-400' : 'text-slate-500'
-                          }
+                <div
+                  className="h-1 w-full"
+                  style={{ backgroundColor: group.accentColor || '#3B82F6' }}
+                  aria-hidden="true"
+                />
+                <div className="p-5 flex-1 flex flex-col justify-between gap-4">
+                  <div className="space-y-2.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs text-slate-400 flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ backgroundColor: group.accentColor || '#3B82F6' }}
+                            aria-hidden="true"
+                          />
+                          <span>{group.category}</span>
+                          <span className="text-slate-600">·</span>
+                          <span
+                            className={
+                              group.isPublicDirectory ? 'text-emerald-400' : 'text-slate-500'
+                            }
+                          >
+                            {group.isPublicDirectory ? 'Portal Publik Aktif' : 'Hanya Internal'}
+                          </span>
+                        </p>
+                        <h3 className="font-display text-base font-semibold text-slate-100 mt-0.5 truncate">
+                          {group.name}
+                        </h3>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => onEditGroup(group)}
+                          title="Edit Grup"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer"
                         >
-                          {group.isPublicDirectory ? 'Portal Publik Aktif' : 'Hanya Internal'}
-                        </span>
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDelete(group)}
+                          title="Hapus Grup"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {group.description && (
+                      <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
+                        {group.description}
                       </p>
-                      <h3 className="font-display text-base font-semibold text-slate-100 mt-0.5 truncate">
-                        {group.name}
-                      </h3>
-                    </div>
+                    )}
 
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => onEditGroup(group)}
-                        title="Edit Grup"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDelete(group)}
-                        title="Hapus Grup"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <div className="flex items-center gap-6 pt-1 text-xs">
+                      <div>
+                        <span className="text-slate-500 block">Jumlah Link</span>
+                        <span className="font-mono-tabular font-semibold text-slate-200">
+                          {formatNumber(groupLinks.length)} ({formatNumber(activeCount)} aktif)
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block">Total Klik</span>
+                        <span className="font-mono-tabular font-semibold text-slate-200">
+                          {formatNumber(totalClicks)}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {group.description && (
-                    <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
-                      {group.description}
-                    </p>
-                  )}
+                  <div className="pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => onSelectGroupLinks(group.id)}
+                        className="text-xs font-medium text-blue-400 hover:text-blue-300 cursor-pointer whitespace-nowrap"
+                      >
+                        Lihat Link →
+                      </button>
+                      {groupLinks.length >= 2 && (
+                        <button
+                          type="button"
+                          onClick={() => onReorderLinks(group)}
+                          className="inline-flex items-center gap-1 text-xs font-medium text-slate-300 hover:text-slate-100 cursor-pointer whitespace-nowrap"
+                        >
+                          <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Urutkan</span>
+                        </button>
+                      )}
+                    </div>
 
-                  <div className="flex items-center gap-6 pt-1 text-xs">
-                    <div>
-                      <span className="text-slate-500 block">Jumlah Link</span>
-                      <span className="font-mono-tabular font-semibold text-slate-200">
-                        {formatNumber(groupLinks.length)} ({formatNumber(activeCount)} aktif)
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block">Total Klik</span>
-                      <span className="font-mono-tabular font-semibold text-slate-200">
-                        {formatNumber(totalClicks)}
-                      </span>
-                    </div>
+                    {group.isPublicDirectory && (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPortal(group)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#090D16] border border-slate-800 hover:border-slate-700 text-xs font-mono-tabular text-slate-300 cursor-pointer"
+                        >
+                          {copiedId === group.id ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5 text-slate-400" />
+                          )}
+                          <span>/event/{group.slug}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onOpenEventQr(group)}
+                          title="QR Code Portal Event"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#090D16] border border-slate-800 hover:border-slate-700 text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
+                        >
+                          <QrCode className="w-3.5 h-3.5 text-blue-400" />
+                          <span>QR Event</span>
+                        </button>
+                        <a
+                          href={`/event/${group.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-100 transition-colors whitespace-nowrap"
+                        >
+                          <span>Buka Portal</span>
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    )}
                   </div>
-                </div>
-
-                <div className="pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onSelectGroupLinks(group.id)}
-                    className="text-xs font-medium text-blue-400 hover:text-blue-300 cursor-pointer whitespace-nowrap"
-                  >
-                    Lihat Daftar Link →
-                  </button>
-
-                  {group.isPublicDirectory && (
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleCopyPortal(group)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#090D16] border border-slate-800 hover:border-slate-700 text-xs font-mono-tabular text-slate-300 cursor-pointer"
-                      >
-                        {copiedId === group.id ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5 text-slate-400" />
-                        )}
-                        <span>/event/{group.slug}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onOpenEventQr(group)}
-                        title="QR Code Portal Event"
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#090D16] border border-slate-800 hover:border-slate-700 text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
-                      >
-                        <QrCode className="w-3.5 h-3.5 text-blue-400" />
-                        <span>QR Event</span>
-                      </button>
-                      <a
-                        href={`/event/${group.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-100 transition-colors whitespace-nowrap"
-                      >
-                        <span>Buka Portal</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </a>
-                    </div>
-                  )}
                 </div>
               </div>
             );

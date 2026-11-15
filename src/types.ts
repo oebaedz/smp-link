@@ -62,6 +62,7 @@ export interface SchoolLink {
   slug: string;
   destinationUrl: string;
   isActive: boolean;
+  sortOrder: number;
   startsAt: string | null;
   expiresAt: string | null;
   clickCount: number;

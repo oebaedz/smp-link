@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS smplink_links (
   slug TEXT NOT NULL UNIQUE,
   destination_url TEXT NOT NULL,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order INTEGER NOT NULL DEFAULT 0,
   starts_at TIMESTAMPTZ NULL,
   expires_at TIMESTAMPTZ NULL,
   click_count INTEGER NOT NULL DEFAULT 0,
@@ -65,6 +66,7 @@ CREATE TABLE IF NOT EXISTS smplink_click_events (
 CREATE INDEX IF NOT EXISTS idx_smplink_groups_slug ON smplink_groups(slug);
 CREATE INDEX IF NOT EXISTS idx_smplink_links_slug ON smplink_links(slug);
 CREATE INDEX IF NOT EXISTS idx_smplink_links_group_id ON smplink_links(group_id);
+CREATE INDEX IF NOT EXISTS idx_smplink_links_sort_order ON smplink_links(group_id, sort_order ASC, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_smplink_click_events_link_id ON smplink_click_events(link_id);
 CREATE INDEX IF NOT EXISTS idx_smplink_click_events_group_id ON smplink_click_events(group_id);
 CREATE INDEX IF NOT EXISTS idx_smplink_click_events_clicked_at ON smplink_click_events(clicked_at DESC);
@@ -159,17 +161,17 @@ VALUES
   ('11111111-1111-4111-8111-111111111105', 'Informasi Wali Murid & TU', 'info-wali-murid', 'Administrasi', 'Unduhan surat edaran resmi, kalender akademik, dan layanan administrasi tata usaha.', '#06B6D4', TRUE)
 ON CONFLICT (slug) DO NOTHING;
 
-INSERT INTO smplink_links (id, group_id, title, slug, destination_url, is_active, starts_at, expires_at, click_count)
+INSERT INTO smplink_links (id, group_id, title, slug, destination_url, is_active, sort_order, starts_at, expires_at, click_count)
 VALUES
-  ('22222222-2222-4222-8222-222222222201', '11111111-1111-4111-8111-111111111101', 'Formulir Pendaftaran PPDB Jalur Zonasi', 'ppdb-zonasi', 'https://belajar.id', TRUE, NOW() - INTERVAL '14 days', NOW() + INTERVAL '45 days', 64),
-  ('22222222-2222-4222-8222-222222222202', '11111111-1111-4111-8111-111111111101', 'Panduan Syarat & Berkas PPDB (PDF)', 'panduan-ppdb', 'https://kemdikbud.go.id', TRUE, NOW() - INTERVAL '14 days', NOW() + INTERVAL '45 days', 42),
-  ('22222222-2222-4222-8222-222222222203', '11111111-1111-4111-8111-111111111101', 'Portal Pengumuman Seleksi Tahap 2', 'hasil-ppdb-2', 'https://kemdikbud.go.id', TRUE, NOW() + INTERVAL '10 days', NOW() + INTERVAL '60 days', 0),
-  ('22222222-2222-4222-8222-222222222204', '11111111-1111-4111-8111-111111111102', 'Cek Pembagian Gugus & Ruang MPLS', 'gugus-mpls', 'https://belajar.id', TRUE, NOW() - INTERVAL '7 days', NOW() + INTERVAL '30 days', 31),
-  ('22222222-2222-4222-8222-222222222205', '11111111-1111-4111-8111-111111111102', 'Daftar Perlengkapan & Seragam MPLS', 'bekal-mpls', 'https://belajar.id', TRUE, NOW() - INTERVAL '7 days', NOW() + INTERVAL '30 days', 19),
-  ('22222222-2222-4222-8222-222222222206', '11111111-1111-4111-8111-111111111103', 'Ruang Ujian CBT Kelas VII - IX', 'ujian-cbt', 'https://pusmendik.kemdikbud.go.id', TRUE, NOW() - INTERVAL '5 days', NOW() + INTERVAL '20 days', 53),
-  ('22222222-2222-4222-8222-222222222207', '11111111-1111-4111-8111-111111111103', 'Kisi-Kisi Asesmen Akhir Semester Ganjil', 'kisi-kisi-ganjil', 'https://kurikulum.kemdikbud.go.id', TRUE, NOW() - INTERVAL '10 days', NOW() + INTERVAL '25 days', 28),
-  ('22222222-2222-4222-8222-222222222208', '11111111-1111-4111-8111-111111111104', 'Pendaftaran Ekstrakurikuler Semester Baru', 'daftar-ekskul', 'https://belajar.id', TRUE, NOW() - INTERVAL '12 days', NOW() + INTERVAL '30 days', 37),
-  ('22222222-2222-4222-8222-222222222209', '11111111-1111-4111-8111-111111111104', 'E-Voting Pemilihan Ketua OSIS', 'voting-osis', 'https://belajar.id', TRUE, NOW() - INTERVAL '30 days', NOW() - INTERVAL '3 days', 45),
-  ('22222222-2222-4222-8222-222222222210', '11111111-1111-4111-8111-111111111105', 'Kalender Akademik Tahun 2026/2027', 'kalender-akademik', 'https://kemdikbud.go.id', TRUE, NULL, NULL, 24),
-  ('22222222-2222-4222-8222-222222222211', '11111111-1111-4111-8111-111111111105', 'Layanan Surat Keterangan Siswa Aktif', 'surat-aktif-tu', 'https://belajar.id', TRUE, NULL, NULL, 15)
+  ('22222222-2222-4222-8222-222222222201', '11111111-1111-4111-8111-111111111101', 'Formulir Pendaftaran PPDB Jalur Zonasi', 'ppdb-zonasi', 'https://belajar.id', TRUE, 1, NOW() - INTERVAL '14 days', NOW() + INTERVAL '45 days', 64),
+  ('22222222-2222-4222-8222-222222222202', '11111111-1111-4111-8111-111111111101', 'Panduan Syarat & Berkas PPDB (PDF)', 'panduan-ppdb', 'https://kemdikbud.go.id', TRUE, 2, NOW() - INTERVAL '14 days', NOW() + INTERVAL '45 days', 42),
+  ('22222222-2222-4222-8222-222222222203', '11111111-1111-4111-8111-111111111101', 'Portal Pengumuman Seleksi Tahap 2', 'hasil-ppdb-2', 'https://kemdikbud.go.id', TRUE, 3, NOW() + INTERVAL '10 days', NOW() + INTERVAL '60 days', 0),
+  ('22222222-2222-4222-8222-222222222204', '11111111-1111-4111-8111-111111111102', 'Cek Pembagian Gugus & Ruang MPLS', 'gugus-mpls', 'https://belajar.id', TRUE, 1, NOW() - INTERVAL '7 days', NOW() + INTERVAL '30 days', 31),
+  ('22222222-2222-4222-8222-222222222205', '11111111-1111-4111-8111-111111111102', 'Daftar Perlengkapan & Seragam MPLS', 'bekal-mpls', 'https://belajar.id', TRUE, 2, NOW() - INTERVAL '7 days', NOW() + INTERVAL '30 days', 19),
+  ('22222222-2222-4222-8222-222222222206', '11111111-1111-4111-8111-111111111103', 'Ruang Ujian CBT Kelas VII - IX', 'ujian-cbt', 'https://pusmendik.kemdikbud.go.id', TRUE, 1, NOW() - INTERVAL '5 days', NOW() + INTERVAL '20 days', 53),
+  ('22222222-2222-4222-8222-222222222207', '11111111-1111-4111-8111-111111111103', 'Kisi-Kisi Asesmen Akhir Semester Ganjil', 'kisi-kisi-ganjil', 'https://kurikulum.kemdikbud.go.id', TRUE, 2, NOW() - INTERVAL '10 days', NOW() + INTERVAL '25 days', 28),
+  ('22222222-2222-4222-8222-222222222208', '11111111-1111-4111-8111-111111111104', 'Pendaftaran Ekstrakurikuler Semester Baru', 'daftar-ekskul', 'https://belajar.id', TRUE, 1, NOW() - INTERVAL '12 days', NOW() + INTERVAL '30 days', 37),
+  ('22222222-2222-4222-8222-222222222209', '11111111-1111-4111-8111-111111111104', 'E-Voting Pemilihan Ketua OSIS', 'voting-osis', 'https://belajar.id', TRUE, 2, NOW() - INTERVAL '30 days', NOW() - INTERVAL '3 days', 45),
+  ('22222222-2222-4222-8222-222222222210', '11111111-1111-4111-8111-111111111105', 'Kalender Akademik Tahun 2026/2027', 'kalender-akademik', 'https://kemdikbud.go.id', TRUE, 1, NULL, NULL, 24),
+  ('22222222-2222-4222-8222-222222222211', '11111111-1111-4111-8111-111111111105', 'Layanan Surat Keterangan Siswa Aktif', 'surat-aktif-tu', 'https://belajar.id', TRUE, 2, NULL, NULL, 15)
 ON CONFLICT (slug) DO NOTHING;

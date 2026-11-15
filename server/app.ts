@@ -450,6 +450,21 @@ export function createApiApp() {
     }
   });
 
+  app.put('/api/groups/:id/reorder-links', requirePinAuth, async (req, res) => {
+    try {
+      const linkIds = Array.isArray(req.body?.linkIds) ? (req.body.linkIds as string[]) : null;
+      if (!linkIds) {
+        res.status(400).json({ error: 'Daftar urutan link (linkIds) tidak valid.' });
+        return;
+      }
+      const links = await repository.reorderGroupLinks(req.params.id, linkIds);
+      realtimeBus.broadcast({ type: 'data:updated', scope: 'links' });
+      res.json({ ok: true, links });
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : 'Gagal menyimpan urutan link.' });
+    }
+  });
+
   app.put('/api/profile', requirePinAuth, async (req, res) => {
     try {
       const {

@@ -75,32 +75,38 @@ export function PublicEventDirectory({ groupSlug }: PublicEventDirectoryProps) {
 
   const { profile, group, links, upcomingLinks } = data;
   const socialLinks = profile.socialLinks || [];
+  const accent = group.accentColor || '#3B82F6';
 
   return (
     <div className="min-h-screen bg-[#090D16] text-slate-100 py-8 sm:py-10 px-4 sm:px-6">
       <div className="w-full max-w-xl mx-auto space-y-6">
         {/* School Identity Header */}
-        <header className="bg-[#111827] border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-4">
-          <div className="flex items-center gap-3.5">
-            <SchoolEmblem schoolName={profile.schoolName} logoUrl={profile.logoUrl} size="lg" />
-            <div className="min-w-0">
-              <p className="font-display text-base font-semibold text-slate-100 truncate">
-                {profile.schoolName}
-              </p>
-              <p className="text-xs text-slate-400 truncate">
-                {profile.npsn ? `NPSN ${profile.npsn} · ` : ''}
-                {group.category}
-              </p>
+        <header className="bg-[#111827] border border-slate-800 rounded-2xl overflow-hidden">
+          <div className="h-1.5 w-full" style={{ backgroundColor: accent }} aria-hidden="true" />
+          <div className="p-5 sm:p-6 space-y-4">
+            <div className="flex items-center gap-3.5">
+              <SchoolEmblem schoolName={profile.schoolName} logoUrl={profile.logoUrl} size="lg" />
+              <div className="min-w-0">
+                <p className="font-display text-base font-semibold text-slate-100 truncate">
+                  {profile.schoolName}
+                </p>
+                <p className="text-xs text-slate-400 truncate">
+                  {profile.npsn ? `NPSN ${profile.npsn} · ` : ''}
+                  <span className="font-medium" style={{ color: accent }}>
+                    {group.category}
+                  </span>
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="pt-4 border-t border-slate-800/80 space-y-1.5">
-            <h1 className="font-display text-xl sm:text-2xl font-bold text-slate-100 text-balance">
-              {group.name}
-            </h1>
-            {group.description && (
-              <p className="text-sm text-slate-400 leading-relaxed">{group.description}</p>
-            )}
+            <div className="pt-4 border-t border-slate-800/80 space-y-1.5">
+              <h1 className="font-display text-xl sm:text-2xl font-bold text-slate-100 text-balance">
+                {group.name}
+              </h1>
+              {group.description && (
+                <p className="text-sm text-slate-400 leading-relaxed">{group.description}</p>
+              )}
+            </div>
           </div>
         </header>
 
@@ -122,19 +128,29 @@ export function PublicEventDirectory({ groupSlug }: PublicEventDirectoryProps) {
                 href={`/go/${link.slug}?src=directory`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group block bg-[#111827] border border-slate-800 hover:border-blue-500/70 hover:bg-[#161F30] rounded-xl px-5 py-4 transition-colors"
+                className="group block bg-[#111827] border border-slate-800 hover:border-slate-600 hover:bg-[#161F30] rounded-xl px-5 py-4 transition-colors"
               >
                 <div className="flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <h2 className="text-sm sm:text-base font-medium text-slate-100 group-hover:text-blue-300 transition-colors">
-                      {link.title}
-                    </h2>
-                    <p className="text-xs font-mono-tabular text-slate-500 mt-0.5 truncate">
-                      /go/{link.slug}
-                      {link.expiresAt ? ` · Berlaku hingga ${formatDateTimeId(link.expiresAt)}` : ''}
-                    </p>
+                  <div className="flex items-start gap-3 min-w-0">
+                    <span
+                      className="w-2 h-2 rounded-full mt-2 shrink-0"
+                      style={{ backgroundColor: accent }}
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <h2 className="text-sm sm:text-base font-medium text-slate-100 group-hover:text-white transition-colors">
+                        {link.title}
+                      </h2>
+                      <p className="text-xs font-mono-tabular text-slate-500 mt-0.5 truncate">
+                        /go/{link.slug}
+                        {link.expiresAt ? ` · Berlaku hingga ${formatDateTimeId(link.expiresAt)}` : ''}
+                      </p>
+                    </div>
                   </div>
-                  <ArrowUpRight className="w-5 h-5 text-slate-500 group-hover:text-blue-400 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  <ArrowUpRight
+                    className="w-5 h-5 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                    style={{ color: accent }}
+                  />
                 </div>
               </a>
             ))

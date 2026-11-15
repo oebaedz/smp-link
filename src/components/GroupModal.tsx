@@ -201,9 +201,12 @@ export function GroupModal({ isOpen, editingGroup, onClose, onSaved }: GroupModa
 
           <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
             <div>
-              <span className="block text-xs font-medium text-slate-300 mb-1.5">
-                Warna Identitas Grup
+              <span className="block text-xs font-medium text-slate-300 mb-1">
+                Warna Tema Event
               </span>
+              <p className="text-[11px] text-slate-500 mb-2">
+                Dipakai sebagai aksen header portal /event, kartu grup, dan poster QR.
+              </p>
               <div className="flex items-center gap-2">
                 {ACCENT_OPTIONS.map((color) => (
                   <button
