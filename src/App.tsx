@@ -36,18 +36,50 @@ import type {
 
 type DashboardTab = 'analytics' | 'links' | 'groups' | 'profile' | 'settings';
 
+const RESERVED_ROOT_SEGMENTS = new Set([
+  'api',
+  'go',
+  'status',
+  'e',
+  'event',
+  'assets',
+  'src',
+  'node_modules',
+  'public',
+  'dist',
+]);
+
 export default function App() {
-  // Check if current URL is a public route (/event/:slug or /status/:slug)
-  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
+  // Check if current URL is a public route (/:slug, /e/:slug, /event/:slug, or /status/:slug)
+  const rawPathname = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const pathname = rawPathname.replace(/\/+$/, '') || '/';
+
+  if (pathname.startsWith('/status/')) {
+    const slug = decodeURIComponent(pathname.slice('/status/'.length));
+    return <PublicLinkStatus slug={slug} />;
+  }
   if (pathname.startsWith('/event/')) {
-    const groupSlug = decodeURIComponent(pathname.slice('/event/'.length).replace(/\/+$/, ''));
+    const groupSlug = decodeURIComponent(pathname.slice('/event/'.length));
     if (groupSlug) {
       return <PublicEventDirectory groupSlug={groupSlug} />;
     }
   }
-  if (pathname.startsWith('/status/')) {
-    const slug = decodeURIComponent(pathname.slice('/status/'.length).replace(/\/+$/, ''));
-    return <PublicLinkStatus slug={slug} />;
+  if (pathname.startsWith('/e/')) {
+    const groupSlug = decodeURIComponent(pathname.slice('/e/'.length));
+    if (groupSlug) {
+      return <PublicEventDirectory groupSlug={groupSlug} />;
+    }
+  }
+  if (pathname !== '/') {
+    const segment = pathname.slice(1);
+    if (
+      segment &&
+      !segment.includes('/') &&
+      !segment.includes('.') &&
+      !RESERVED_ROOT_SEGMENTS.has(segment.toLowerCase())
+    ) {
+      return <PublicEventDirectory groupSlug={decodeURIComponent(segment)} />;
+    }
   }
 
   return <DashboardShell />;

@@ -38,6 +38,20 @@ export function normalizeSlug(raw: string): string {
     .replace(/^-|-$/g, '');
 }
 
+const RESERVED_GROUP_SLUGS = new Set([
+  'api',
+  'go',
+  'status',
+  'e',
+  'event',
+  'assets',
+  'src',
+  'node_modules',
+  'public',
+  'dist',
+  'index-html',
+]);
+
 export function isValidHttpUrl(value: string): boolean {
   try {
     const parsed = new URL(value);
@@ -370,6 +384,9 @@ class SchoolLinkRepository {
   }): Promise<SchoolGroup> {
     const slug = normalizeSlug(input.slug);
     if (!slug) throw new Error('Slug grup tidak valid.');
+    if (RESERVED_GROUP_SLUGS.has(slug)) {
+      throw new Error(`Slug "/${slug}" dicadangkan oleh sistem. Gunakan nama event lain.`);
+    }
 
     const existing = await this.listGroups();
     if (existing.some((g) => g.slug === slug)) {
@@ -436,6 +453,9 @@ class SchoolLinkRepository {
 
     const nextSlug = input.slug !== undefined ? normalizeSlug(input.slug) : current.slug;
     if (!nextSlug) throw new Error('Slug grup tidak valid.');
+    if (RESERVED_GROUP_SLUGS.has(nextSlug)) {
+      throw new Error(`Slug "/${nextSlug}" dicadangkan oleh sistem. Gunakan nama event lain.`);
+    }
     if (existing.some((g) => g.id !== id && g.slug === nextSlug)) {
       throw new Error(`Slug direktori "${nextSlug}" sudah dipakai.`);
     }

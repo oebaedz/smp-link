@@ -136,19 +136,43 @@ export function LinksTableView({
             />
           </div>
 
-          <select
-            aria-label="Filter grup"
-            value={selectedGroupId}
-            onChange={(e) => onGroupFilterChange(e.target.value)}
-            className="bg-[#111827] border border-slate-800 focus:border-blue-500 focus:outline-none rounded-xl px-3.5 py-2 text-xs text-slate-200"
-          >
-            <option value="">Semua Grup Program</option>
-            {groups.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <select
+              aria-label="Filter grup"
+              value={selectedGroupId}
+              onChange={(e) => onGroupFilterChange(e.target.value)}
+              className="flex-1 sm:flex-initial min-w-0 bg-[#111827] border border-slate-800 focus:border-blue-500 focus:outline-none rounded-xl px-3.5 py-2 text-xs text-slate-200"
+            >
+              <option value="">Semua Grup Program</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+
+            {(() => {
+              const activeGroup = selectedGroupId ? groupMap.get(selectedGroupId) : undefined;
+              if (!activeGroup?.isPublicDirectory) return null;
+              return (
+                <a
+                  href={`/${activeGroup.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`Buka portal publik /${activeGroup.slug}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#111827] border border-slate-700 hover:border-blue-500/70 hover:text-blue-300 text-xs font-medium text-slate-200 transition-colors shrink-0 whitespace-nowrap"
+                >
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: activeGroup.accentColor || '#3B82F6' }}
+                    aria-hidden="true"
+                  />
+                  <span>Portal</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
+                </a>
+              );
+            })()}
+          </div>
 
           <div className="w-full sm:w-auto overflow-x-auto">
             <div className="inline-flex items-center p-1 bg-[#111827] border border-slate-800 rounded-xl">

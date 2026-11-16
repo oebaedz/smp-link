@@ -34,7 +34,7 @@ export function GroupsView({
     try {
       await navigator.clipboard.writeText(buildEventDirectoryUrl(group.slug));
       setCopiedId(group.id);
-      onNotify(`URL portal /event/${group.slug} disalin`);
+      onNotify(`URL portal /${group.slug} disalin`);
       setTimeout(() => setCopiedId(null), 1600);
     } catch {
       onNotify('Gagal menyalin URL portal');
@@ -206,7 +206,7 @@ export function GroupsView({
                           ) : (
                             <Copy className="w-3.5 h-3.5 text-slate-400" />
                           )}
-                          <span>/event/{group.slug}</span>
+                          <span>/{group.slug}</span>
                         </button>
                         <button
                           type="button"
@@ -218,7 +218,7 @@ export function GroupsView({
                           <span>QR Event</span>
                         </button>
                         <a
-                          href={`/event/${group.slug}`}
+                          href={`/${group.slug}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-100 transition-colors whitespace-nowrap"

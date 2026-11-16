@@ -228,9 +228,13 @@ export function createApiApp() {
       let source: ClickSource = 'Direct / QR';
       let referrerLabel = 'Langsung / QR Code';
 
-      if (srcParam === 'directory' || rawReferer.includes('/event/')) {
+      if (
+        srcParam === 'directory' ||
+        rawReferer.includes('/event/') ||
+        rawReferer.includes('/e/')
+      ) {
         source = 'Direktori Event';
-        referrerLabel = group ? `/event/${group.slug}` : 'Direktori Event';
+        referrerLabel = group ? `/${group.slug}` : 'Direktori Event';
       } else if (srcParam === 'qr') {
         source = 'Direct / QR';
         referrerLabel = 'Pemindaian QR Code';

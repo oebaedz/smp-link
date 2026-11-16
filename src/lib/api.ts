@@ -63,8 +63,8 @@ export function buildShortUrl(slug: string): string {
 }
 
 export function buildEventDirectoryUrl(groupSlug: string): string {
-  if (typeof window === 'undefined') return `/event/${groupSlug}`;
-  return `${window.location.origin}/event/${groupSlug}`;
+  if (typeof window === 'undefined') return `/${groupSlug}`;
+  return `${window.location.origin}/${groupSlug}`;
 }
 
 export function formatNumber(n: number): string {

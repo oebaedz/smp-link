@@ -323,7 +323,7 @@ export function createInitialSeedData(): LocalStoreData {
       const source = sources[(seq * 3 + i) % sources.length];
       const referrer =
         source === 'Direktori Event'
-          ? `/event/${group.slug}`
+          ? `/${group.slug}`
           : referrers[(seq + i * 2) % referrers.length];
       const userAgentSummary = agents[(seq + i) % agents.length];
 

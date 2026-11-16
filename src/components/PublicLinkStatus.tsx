@@ -101,7 +101,7 @@ export function PublicLinkStatus({ slug }: PublicLinkStatusProps) {
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           {data?.group && (
             <a
-              href={`/event/${data.group.slug}`}
+              href={`/${data.group.slug}`}
               className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-medium text-white transition-colors"
             >
               Buka Portal {data.group.name}

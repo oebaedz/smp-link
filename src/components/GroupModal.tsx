@@ -151,8 +151,8 @@ export function GroupModal({ isOpen, editingGroup, onClose, onSaved }: GroupModa
                 Slug Portal Direktori
               </label>
               <div className="flex items-center bg-[#090D16] border border-slate-700 focus-within:border-blue-500 rounded-xl overflow-hidden">
-                <span className="px-2.5 py-2.5 text-xs font-mono-tabular text-slate-500 bg-slate-900/70 border-r border-slate-800">
-                  /event/
+                <span className="px-3 py-2.5 text-xs font-mono-tabular text-slate-500 bg-slate-900/70 border-r border-slate-800">
+                  /
                 </span>
                 <input
                   id="group-slug"
@@ -160,7 +160,7 @@ export function GroupModal({ isOpen, editingGroup, onClose, onSaved }: GroupModa
                   required
                   value={slug}
                   onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
-                  placeholder="class-meeting"
+                  placeholder="ppdb-2027"
                   className="w-full bg-transparent px-3 py-2.5 text-xs font-mono-tabular text-slate-100 focus:outline-none"
                 />
               </div>
@@ -205,7 +205,7 @@ export function GroupModal({ isOpen, editingGroup, onClose, onSaved }: GroupModa
                 Warna Tema Event
               </span>
               <p className="text-[11px] text-slate-500 mb-2">
-                Dipakai sebagai aksen header portal /event, kartu grup, dan poster QR.
+                Dipakai sebagai aksen header portal /{slug || 'nama-event'}, kartu grup, dan poster QR.
               </p>
               <div className="flex items-center gap-2">
                 {ACCENT_OPTIONS.map((color) => (

@@ -79,7 +79,7 @@ export function ReorderLinksModal({ group, links, onClose, onSaved }: ReorderLin
               Urutkan Tautan Event
             </h2>
             <p className="text-xs text-slate-400 truncate">
-              {group.name} · Urutan ini diterapkan langsung di portal /event/{group.slug}
+              {group.name} · Urutan ini diterapkan langsung di portal /{group.slug}
             </p>
           </div>
           <button
